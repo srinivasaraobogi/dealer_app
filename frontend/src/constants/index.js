@@ -1,4 +1,4 @@
-export const API_BASE_URL = 'http://localhost:5000/api';
+export const API_BASE_URL = 'http://21.0.0.52:5000/api';
 
 export const COLORS = {
   primary: '#1A73E8',
