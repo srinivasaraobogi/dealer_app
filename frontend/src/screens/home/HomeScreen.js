@@ -115,6 +115,7 @@ const HomeScreen = ({ navigation }) => {
   const [priceDrop, setPriceDrop] = useState([]);
   const [recentlyViewed, setRecentlyViewed] = useState([]);
   const [notificationCount, setNotificationCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
   const { fetchCart } = useCart();
 
   const loadData = async () => {
@@ -146,10 +147,27 @@ const HomeScreen = ({ navigation }) => {
   }, []));
 
   const handleSearch = (query) => {
-    if (query.length >= 2) {
-      navigation.navigate('ProductsList', { search: query });
-    }
+    setSearchQuery(query);
   };
+
+  const allProducts = React.useMemo(() => {
+    const seen = new Set();
+    return [...highlyDemanded, ...priceDrop, ...recentlyViewed].filter(p => {
+      if (seen.has(p._id)) return false;
+      seen.add(p._id);
+      return true;
+    });
+  }, [highlyDemanded, priceDrop, recentlyViewed]);
+
+  const searchResults = React.useMemo(() => {
+    if (searchQuery.length < 2) return [];
+    const q = searchQuery.toLowerCase();
+    return allProducts.filter(p =>
+      p.name?.toLowerCase().includes(q) ||
+      p.sku?.toLowerCase().includes(q) ||
+      p.category?.toLowerCase().includes(q)
+    );
+  }, [searchQuery, allProducts]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -171,72 +189,99 @@ const HomeScreen = ({ navigation }) => {
           <SearchBar onSearch={handleSearch} onFilter={() => navigation.navigate('ProductsList', { openFilter: true })} />
         </View>
 
-        {/* Banners */}
-        {banners.length > 0 && (
+        {searchQuery.length >= 2 ? (
+          /* Search Results */
           <View style={styles.section}>
-            <SectionHeader title="🎯 Promotions" actionLabel="See All" onAction={() => navigation.navigate('ProductsList')} />
-            <FlatList
-              data={banners}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyExtractor={item => item._id}
-              renderItem={({ item }) => (
-                <BannerCard banner={item} onPress={() => navigation.navigate('ProductsList', { category: item.targetCategory })} />
-              )}
-              contentContainerStyle={styles.bannerList}
+            <SectionHeader
+              title={`Search Results (${searchResults.length})`}
+              actionLabel="See All"
+              onAction={() => navigation.navigate('ProductsList', { search: searchQuery })}
             />
+            {searchResults.length === 0 ? (
+              <EmptyState message={`No products found for "${searchQuery}"`} />
+            ) : (
+              <FlatList
+                data={searchResults}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={item => item._id}
+                renderItem={({ item }) => (
+                  <ProductCard product={item} onPress={() => navigation.navigate('ProductDetails', { productId: item._id })} />
+                )}
+                contentContainerStyle={styles.horizontalList}
+              />
+            )}
           </View>
-        )}
+        ) : (
+          <>
+            {/* Banners */}
+            {banners.length > 0 && (
+              <View style={styles.section}>
+                <SectionHeader title="🎯 Promotions" actionLabel="See All" onAction={() => navigation.navigate('ProductsList')} />
+                <FlatList
+                  data={banners}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  keyExtractor={item => item._id}
+                  renderItem={({ item }) => (
+                    <BannerCard banner={item} onPress={() => navigation.navigate('ProductsList', { category: item.targetCategory })} />
+                  )}
+                  contentContainerStyle={styles.bannerList}
+                />
+              </View>
+            )}
 
-        {/* Highly Demanded */}
-        {highlyDemanded.length > 0 && (
-          <View style={styles.section}>
-            <SectionHeader title="🔥 Highly Demanded" actionLabel="View All" onAction={() => navigation.navigate('ProductsList', { sort: 'popular' })} />
-            <FlatList
-              data={highlyDemanded}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyExtractor={item => item._id}
-              renderItem={({ item }) => (
-                <ProductCard product={item} onPress={() => navigation.navigate('ProductDetails', { productId: item._id })} />
-              )}
-              contentContainerStyle={styles.horizontalList}
-            />
-          </View>
-        )}
+            {/* Highly Demanded */}
+            {highlyDemanded.length > 0 && (
+              <View style={styles.section}>
+                <SectionHeader title="🔥 Highly Demanded" actionLabel="View All" onAction={() => navigation.navigate('ProductsList', { sort: 'popular' })} />
+                <FlatList
+                  data={highlyDemanded}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  keyExtractor={item => item._id}
+                  renderItem={({ item }) => (
+                    <ProductCard product={item} onPress={() => navigation.navigate('ProductDetails', { productId: item._id })} />
+                  )}
+                  contentContainerStyle={styles.horizontalList}
+                />
+              </View>
+            )}
 
-        {/* Price Drop */}
-        {priceDrop.length > 0 && (
-          <View style={styles.section}>
-            <SectionHeader title="💰 Price Drop" actionLabel="View All" onAction={() => navigation.navigate('ProductsList', { discount: 'true' })} />
-            <FlatList
-              data={priceDrop}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyExtractor={item => item._id}
-              renderItem={({ item }) => (
-                <ProductCard product={item} onPress={() => navigation.navigate('ProductDetails', { productId: item._id })} />
-              )}
-              contentContainerStyle={styles.horizontalList}
-            />
-          </View>
-        )}
+            {/* Price Drop */}
+            {priceDrop.length > 0 && (
+              <View style={styles.section}>
+                <SectionHeader title="💰 Price Drop" actionLabel="View All" onAction={() => navigation.navigate('ProductsList', { discount: 'true' })} />
+                <FlatList
+                  data={priceDrop}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  keyExtractor={item => item._id}
+                  renderItem={({ item }) => (
+                    <ProductCard product={item} onPress={() => navigation.navigate('ProductDetails', { productId: item._id })} />
+                  )}
+                  contentContainerStyle={styles.horizontalList}
+                />
+              </View>
+            )}
 
-        {/* Recently Viewed */}
-        {recentlyViewed.length > 0 && (
-          <View style={styles.section}>
-            <SectionHeader title="🕐 Recently Viewed" />
-            <FlatList
-              data={recentlyViewed.slice(0, 6)}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyExtractor={item => item._id}
-              renderItem={({ item }) => (
-                <ProductCard product={item} onPress={() => navigation.navigate('ProductDetails', { productId: item._id })} />
-              )}
-              contentContainerStyle={styles.horizontalList}
-            />
-          </View>
+            {/* Recently Viewed */}
+            {recentlyViewed.length > 0 && (
+              <View style={styles.section}>
+                <SectionHeader title="🕐 Recently Viewed" />
+                <FlatList
+                  data={recentlyViewed.slice(0, 6)}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  keyExtractor={item => item._id}
+                  renderItem={({ item }) => (
+                    <ProductCard product={item} onPress={() => navigation.navigate('ProductDetails', { productId: item._id })} />
+                  )}
+                  contentContainerStyle={styles.horizontalList}
+                />
+              </View>
+            )}
+          </>
         )}
 
         {/* Support Section */}

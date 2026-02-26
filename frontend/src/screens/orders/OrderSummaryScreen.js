@@ -11,11 +11,13 @@ import { useCart } from '../../store/CartContext';
 import { formatCurrency } from '../../utils/helpers';
 
 const CartItem = ({ item, onUpdate, onRemove }) => {
+  const productId = item.productId?._id?.toString() || item.productId?.toString();
+
   const handleDecrease = () => {
-    if (item.quantity > item.moq) onUpdate(item.productId, item.quantity - 1);
+    if (item.quantity > item.moq) onUpdate(productId, item.quantity - 1);
   };
   const handleIncrease = () => {
-    if (item.quantity < item.stock) onUpdate(item.productId, item.quantity + 1);
+    if (item.quantity < item.stock) onUpdate(productId, item.quantity + 1);
   };
 
   return (
@@ -36,7 +38,7 @@ const CartItem = ({ item, onUpdate, onRemove }) => {
             </TouchableOpacity>
           </View>
           <Text style={styles.lineTotal}>{formatCurrency(item.unitPrice * item.quantity)}</Text>
-          <TouchableOpacity onPress={() => onRemove(item.productId)}>
+          <TouchableOpacity onPress={() => onRemove(productId)}>
             <Text style={styles.removeBtn}>🗑️</Text>
           </TouchableOpacity>
         </View>
@@ -127,10 +129,11 @@ const OrderSummaryScreen = ({ navigation }) => {
   };
 
   const handleRemove = async (productId) => {
-    Alert.alert('Remove Item', 'Remove this item from cart?', [
-      { text: 'Cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => removeFromCart(productId) },
-    ]);
+    try {
+      await removeFromCart(productId);
+    } catch (error) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to remove item');
+    }
   };
 
   if (loading) return <LoadingScreen message="Loading cart..." />;
@@ -171,12 +174,15 @@ const OrderSummaryScreen = ({ navigation }) => {
         {/* Cart Items */}
         <Card style={styles.section}>
           <Text style={styles.sectionTitle}>Items</Text>
-          {cart.items.map((item, idx) => (
-            <View key={item.productId}>
-              <CartItem item={item} onUpdate={handleUpdateQuantity} onRemove={handleRemove} />
-              {idx < cart.items.length - 1 && <Divider />}
-            </View>
-          ))}
+          {cart.items.map((item, idx) => {
+            const itemKey = item.productId?._id?.toString() || item.productId?.toString();
+            return (
+              <View key={itemKey}>
+                <CartItem item={item} onUpdate={handleUpdateQuantity} onRemove={handleRemove} />
+                {idx < cart.items.length - 1 && <Divider />}
+              </View>
+            );
+          })}
         </Card>
 
         {/* Delivery Address */}
