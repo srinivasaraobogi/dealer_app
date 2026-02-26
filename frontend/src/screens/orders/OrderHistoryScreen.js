@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator,
+  View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { ScreenHeader } from '../../components/common/Header';
@@ -9,10 +9,14 @@ import { COLORS, FONTS, SPACING, ORDER_STATUS } from '../../constants';
 import { ordersAPI } from '../../services/api';
 import { formatCurrency, formatDate } from '../../utils/helpers';
 
-const STATUS_TABS = ['ALL', 'PENDING', 'SHIPPED', 'DELIVERED'];
+const STATUS_TABS = ['ALL', 'PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED'];
+const TAB_LABELS = { ALL: 'All', PENDING: 'Pending', CONFIRMED: 'Confirmed', SHIPPED: 'Shipped', DELIVERED: 'Delivered' };
 
-const OrderCard = ({ order, onPress, onInvoice, onTrack, onReorder, onReturn }) => {
+const CANCELLABLE = ['PENDING', 'CONFIRMED'];
+
+const OrderCard = ({ order, onPress, onInvoice, onCancel, onTrack, onReorder, onReturn }) => {
   const status = ORDER_STATUS[order.status] || { label: order.status, color: '#999' };
+  const canCancel = CANCELLABLE.includes(order.status);
 
   return (
     <Card style={styles.orderCard} onPress={onPress}>
@@ -31,9 +35,14 @@ const OrderCard = ({ order, onPress, onInvoice, onTrack, onReorder, onReturn }) 
         <TouchableOpacity style={styles.actionBtn} onPress={onInvoice}>
           <Text style={styles.actionText}>📄 Invoice</Text>
         </TouchableOpacity>
-        {order.status === 'CONFIRMED' && (
+        {canCancel && (
           <TouchableOpacity style={styles.actionBtn} onPress={onPress}>
             <Text style={styles.actionText}>👁 View Details</Text>
+          </TouchableOpacity>
+        )}
+        {canCancel && (
+          <TouchableOpacity style={[styles.actionBtn, styles.cancelBtn]} onPress={onCancel}>
+            <Text style={[styles.actionText, styles.cancelText]}>✕ Cancel</Text>
           </TouchableOpacity>
         )}
         {order.status === 'SHIPPED' && (
@@ -102,6 +111,21 @@ const OrderHistoryScreen = ({ navigation }) => {
     }
   };
 
+  const handleCancel = (order) => {
+    Alert.alert(
+      'Cancel Order',
+      `Cancel order #${order.orderId}?`,
+      [
+        { text: 'No, Keep It' },
+        {
+          text: 'Yes, Cancel',
+          style: 'destructive',
+          onPress: () => navigation.navigate('CancelOrder', { order }),
+        },
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
       <ScreenHeader title="My Orders" showBack={false} />
@@ -115,7 +139,7 @@ const OrderHistoryScreen = ({ navigation }) => {
             onPress={() => { setActiveTab(tab); setPage(1); setOrders([]); }}
           >
             <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
-              {tab === 'ALL' ? 'All Orders' : tab.charAt(0) + tab.slice(1).toLowerCase()}
+              {TAB_LABELS[tab]}
             </Text>
           </TouchableOpacity>
         ))}
@@ -142,6 +166,7 @@ const OrderHistoryScreen = ({ navigation }) => {
               order={item}
               onPress={() => navigation.navigate('OrderDetails', { orderId: item._id })}
               onInvoice={() => navigation.navigate('OrderDetails', { orderId: item._id })}
+              onCancel={() => handleCancel(item)}
               onTrack={() => navigation.navigate('TrackShipment', { orderId: item._id })}
               onReorder={() => handleReorder(item)}
               onReturn={() => navigation.navigate('ReturnInitiation', { orderId: item._id })}
@@ -181,6 +206,8 @@ const styles = StyleSheet.create({
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
   actionBtn: { backgroundColor: COLORS.background, borderRadius: 8, paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs, borderWidth: 1, borderColor: COLORS.border },
   actionText: { fontSize: FONTS.sizes.xs, color: COLORS.text, fontWeight: '500' },
+  cancelBtn: { borderColor: COLORS.danger + '60', backgroundColor: COLORS.danger + '08' },
+  cancelText: { color: COLORS.danger },
   supportBar: {
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
     backgroundColor: COLORS.surface, padding: SPACING.md,

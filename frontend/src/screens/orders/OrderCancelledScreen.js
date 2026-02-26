@@ -22,13 +22,16 @@ const OrderCancelledScreen = ({ navigation, route }) => {
         )}
         <Button
           title="Continue Shopping"
-          onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Home' }] })}
+          onPress={() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] })}
           style={styles.btn}
         />
         <Button
           title="View Orders"
           variant="outline"
-          onPress={() => navigation.navigate('OrderHistory')}
+          onPress={() => navigation.reset({
+            index: 0,
+            routes: [{ name: 'MainTabs', state: { routes: [{ name: 'OrderHistory' }], index: 0 } }],
+          })}
           style={styles.btn}
         />
       </View>

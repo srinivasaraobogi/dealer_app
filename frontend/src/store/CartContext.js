@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { cartAPI } from '../services/api';
 
 const CartContext = createContext(null);
@@ -20,6 +20,10 @@ export const CartProvider = ({ children }) => {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    fetchCart();
+  }, [fetchCart]);
 
   const addToCart = async (productId, quantity) => {
     const res = await cartAPI.add({ productId, quantity });

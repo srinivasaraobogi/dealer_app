@@ -29,7 +29,6 @@ const OrderDetailsScreen = ({ navigation, route }) => {
   const { orderId } = route.params;
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => { loadOrder(); }, [orderId]);
 
@@ -168,7 +167,6 @@ const OrderDetailsScreen = ({ navigation, route }) => {
               title="Cancel Order"
               variant="danger"
               onPress={handleCancelOrder}
-              loading={cancelling}
             />
             <Text style={styles.cancelNote}>Cancellation available before shipment</Text>
           </View>
